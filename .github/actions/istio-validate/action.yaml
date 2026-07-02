@@ -1,0 +1,49 @@
+---
+name: Deploy Istio Manifests
+description: Login to AKS and apply Istio manifests (dry-run or real)
+inputs:
+  resource_group:
+    description: 'AKS Resource Group'
+    required: true
+  cluster_name:
+    description: 'AKS Cluster Name'
+    required: true
+  manifest_path:
+    description: 'Path to Istio manifests'
+    required: false
+    default: 'istio/'
+  dry_run:
+    description: 'Run as dry-run (true for CI, false for CD)'
+    required: false
+    default: 'true'
+
+runs:
+  using: "composite"
+  steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    - name: Azure Login
+      uses: azure/login@v2
+      with:
+        client-id: ${{ vars.AZURE_CLIENT_ID }}
+        tenant-id: ${{ vars.AZURE_TENANT_ID }}
+        subscription-id: ${{ vars.DEPLOYMENT_SUBSCRIPTION_ID }}
+
+    - name: Get AKS Credentials
+      shell: bash
+      run: |
+        az aks get-credentials \
+          --resource-group ${{ inputs.resource_group }} \
+          --name ${{ inputs.cluster_name }} \
+          --overwrite-existing \
+          --admin
+
+    - name: Apply Istio Manifests
+      shell: bash
+      run: |
+        if [ "${{ inputs.dry_run }}" = "true" ]; then
+          kubectl apply --dry-run=server -f ${{ inputs.manifest_path }}
+        else
+          kubectl apply -f ${{ inputs.manifest_path }}
+        fi
