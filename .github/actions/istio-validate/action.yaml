@@ -50,6 +50,7 @@ runs:
       shell: bash
       run: |
         if [ "${{ inputs.dry_run }}" = "true" ]; then
+          kubectl apply -f ${{ inputs.manifest_path }}00-namespace.yaml
           kubectl apply --dry-run=server -f ${{ inputs.manifest_path }}
         else
           kubectl apply -f ${{ inputs.manifest_path }}
